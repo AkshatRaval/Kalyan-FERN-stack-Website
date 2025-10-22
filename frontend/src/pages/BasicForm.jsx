@@ -7,8 +7,8 @@ import { useAuth } from '../utils/AuthProvider'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '../../firebase'
 import toast, { Toaster } from 'react-hot-toast'
-import { Input, Textarea } from '../ui/input'
-import { Label } from '../ui/label'
+import { Input, Textarea } from '../ui/Input'
+import { Label } from '../ui/Label'
 
 const BasicForm = () => {
 
