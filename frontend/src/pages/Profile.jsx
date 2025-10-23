@@ -6,16 +6,13 @@ import {
   CheckCircle, XCircle, AlertCircle, MoreHorizontal, Search, Save
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Cards';
-import { Input, Textarea } from '../ui/input';
-import { Label } from '../ui/label';
+import { Input } from '../ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 import { Avatar, AvatarFallback } from '../ui/Avatar';
-import { Progress } from '../ui/Progress';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/DropDown';
 import { useAuth } from '../utils/AuthProvider';
 import { useNavigate } from 'react-router-dom';
-import { doc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 export default function Profile({ setCurrentPage }) {

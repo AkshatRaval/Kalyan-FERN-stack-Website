@@ -4,8 +4,8 @@ import { ArrowLeft, Banknote, CheckCircle, Lock, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Cards';
 import { activities } from '../constants/Apply';
-import { Label } from '../ui/label';
-import { Checkbox, Input, Textarea } from '../ui/input';
+import { Label } from '../ui/Label';
+import { Checkbox, Input, Textarea } from '../ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
 import toast, { Toaster } from 'react-hot-toast';
 import api from '../lib/api';
@@ -23,7 +23,7 @@ const FormRenderer = () => {
     if (!currentActivity) {
         useEffect(() => {
             navigate('/');
-        }, [navigate]);
+        }, []);
         return null; // Render nothing while redirecting
     }
 
@@ -104,7 +104,7 @@ const FormRenderer = () => {
             });
             navigate('/login');
         }
-    }, [currentUser, navigate]);
+    }, [currentUser]);
 
     // console.log(formData)
 
@@ -386,7 +386,7 @@ const FormRenderer = () => {
 
             const res = await api.post(`/api/user/submit/${currentActivity.link}`, fd)
             const result = res.data;
-            // console.log(result)
+            console.log(result)
             toast.success("Your Form is submitted Successfully!", {
                 style: {
                     borderRadius: '10px',
@@ -394,8 +394,10 @@ const FormRenderer = () => {
                     color: '#fff',
                 }
             })
+            
+            navigate(`/application/${currentActivity.link}/${result.id}`);
         } catch (error) {
-            toast.error(error, {
+            toast.error(JSON.stringify(error), {
                 style: {
                     borderRadius: '10px',
                     background: '#030213',

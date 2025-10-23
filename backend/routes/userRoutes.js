@@ -4,10 +4,8 @@ import { verifyToken } from "../middleware/verifyIdToken.js";
 
 const userRoutes = Router()
 
-userRoutes.route('/users')
-    .get(verifyToken, getAllUsers)
+userRoutes.get('/users', verifyToken, getAllUsers)
 
-userRoutes.route('/users/:id')
-    .get(verifyToken, getUserById)
+userRoutes.get('/users/:id', verifyToken, getUserById)
 
 export default userRoutes

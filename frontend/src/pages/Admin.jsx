@@ -30,7 +30,7 @@ const Admin = () => {
             setLoadingForms(false);
             // console.log(forms)
         } catch (err) {
-            console.error('Failed to fetch forms', err);
+            console.error('Failed to fetch forms', JSON.stringify(err));
             toast.error('Could not load forms.');
         } finally {
             setLoadingForms(false);

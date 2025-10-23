@@ -19,6 +19,7 @@ import FormRenderer from './forms/FormRenderer';
 import { activities } from './constants/Apply';
 import AdminRoute from './utils/AdminRoute';
 
+
 const App = () => {
 
   const allLinks = activities.map(activity => activity.link);

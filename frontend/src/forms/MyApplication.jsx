@@ -18,7 +18,7 @@ const MyApplication = () => {
             const result = res.data.data
             setForm(result)
         } catch (error) {
-            console.log(error)
+            console.log(JSON.stringify(error))
         }
         finally {
             setLoading(false)

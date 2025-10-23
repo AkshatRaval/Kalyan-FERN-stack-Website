@@ -27,26 +27,19 @@ function normalizePrivateKey(obj) {
 }
 
 async function loadCredentialsFromEnv() {
-  // 1) Base64 env recommended
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64) {
+
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const p = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (!fs.existsSync(p)) throw new Error('GOOGLE_APPLICATION_CREDENTIALS file not found at ' + p);
     try {
-      const decoded = Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf8');
-      const parsed = JSON.parse(decoded);
+      const raw = fs.readFileSync(p, 'utf8');
+      const parsed = JSON.parse(raw);
       return normalizePrivateKey(parsed);
     } catch (e) {
-      throw new Error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY_BASE64: ' + e.message);
+      throw new Error('Failed to read/parse GOOGLE_APPLICATION_CREDENTIALS file: ' + e.message);
     }
   }
 
-  // 2) Raw JSON in env (less ideal but supported)
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
-    try {
-      const parsed = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-      return normalizePrivateKey(parsed);
-    } catch (e) {
-      throw new Error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY JSON: ' + e.message);
-    }
-  }
 
   // 3) Service account file path (GOOGLE_APPLICATION_CREDENTIALS recommended in prod)
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
