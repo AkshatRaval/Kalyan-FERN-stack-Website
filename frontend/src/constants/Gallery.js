@@ -10,13 +10,13 @@ export const galleryImages = [
   },
   {
     id: '2',
-    url: '',
-    title: 'Rajkot Art Championship',
-    description: 'Young artists showcasing their creativity in painting and visual arts competition.',
-    date: 'February 15, 2024',
-    location: 'Art Studio Complex',
-    participants: 85,
-    height: 400
+    url: 'assets/gallery/DiwaliSmileProject.jpg',
+    title: 'Diwali Smile Project',
+    description: 'Volunteers distributing clothes, toys, and groceries to bring smiles to underprivileged children during Diwali',
+    date: 'October 20, 2025',
+    location: 'Wankaner, Gujarat',
+    participants: 15,
+    height: 600
   },
   {
     id: '3',
