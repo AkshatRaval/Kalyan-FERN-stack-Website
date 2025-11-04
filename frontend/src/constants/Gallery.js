@@ -16,7 +16,7 @@ export const galleryImages = [
     date: 'October 20, 2025',
     location: 'Wankaner, Gujarat',
     participants: 15,
-    height: 600
+    height: 400
   },
   {
     id: '3',
