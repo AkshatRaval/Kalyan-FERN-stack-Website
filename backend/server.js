@@ -8,6 +8,7 @@ import fs from "fs";
 import GCGFormRoute from "./routes/formRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import quizRoute from "./routes/quizRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -26,6 +27,7 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use('/api', GCGFormRoute);
 app.use('/admin', userRoutes);
 app.use('/pay', paymentRoutes);
+app.use('/quiz', quizRoute);
 
 // Serve React Vite build
 const __filename = fileURLToPath(import.meta.url);

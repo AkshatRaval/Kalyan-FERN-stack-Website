@@ -51,6 +51,7 @@ const BasicForm = () => {
                 userId: currentUser.uid,
                 userEmail: userEmail,
                 dob: dateOfBirth,
+                aadhar: aadhar,
                 phone: phone,
                 waPhone: waPhone,
                 address: address,
@@ -127,7 +128,7 @@ const BasicForm = () => {
                                     />
                                 </div>
                                 <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="dateOfBirth" className='font-semibold text-sm'>Date of Birth <span className='text-destructive'>*</span></Label>
+                                    <Label htmlFor="aadhar" className='font-semibold text-sm'>Aadhar Card No.<span className='text-destructive'>*</span></Label>
                                     <Input
                                         id="aadhar"
                                         type="text"

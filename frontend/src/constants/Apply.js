@@ -1,7 +1,31 @@
 
 
 export const activities = [
-
+  {
+    id: 'women-safety-camp',
+    title: 'Morbi Women Safety & Self Defence Workshop',
+    description: 'A practical training camp to empower girls and women with self-defence skills and safety awareness.',
+    image: 'https://img.freepik.com/premium-photo/diverse-female-construction-workers-hard-hats-generative-ai-raw-illustration_167857-39164.jpg?semt=ais_hybrid&w=740&q=80',
+    date: 'November 30, 2025',
+    duration: '3 hours',
+    participants: '300+',
+    location: 'Morbi Town Hall',
+    fee: 0,
+    category: 'workshops',
+    status: 'open',
+    features: [
+      'Practical self defence techniques',
+      'Safety awareness & confidence building',
+      'Fitness based training session'
+    ],
+    eligibility: [
+      'Open for girls and women',
+      'No age limit'
+    ],
+    isTeamBased: false,
+    pinned: true,
+    link: 'women-safety-form'
+  },
   {
     id: 'gcg-exam',
     title: 'GCG Examination',
@@ -11,9 +35,9 @@ export const activities = [
     duration: '3 hours',
     participants: '10,000+ expected',
     location: 'Multiple Centers across Gujarat',
-    fee: 50,
+    fee: 0,
     category: 'exams',
-    status: 'open',
+    status: 'coming-soon',
     features: [
       'Three-stage structure: Knowledge Test, Project, and Quiz',
       'Merit-based scholarship distribution',
@@ -30,33 +54,7 @@ export const activities = [
     pinned: false,
     link: 'gcgform',
   },
-  {
-    id: 'drawing-competition',
-    title: 'District Art & Drawing Championship',
-    description: 'A creative platform for young artists to express their imagination through art and drawing.',
-    image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    date: 'July 10, 2025',
-    duration: '1 day',
-    participants: '1,200+',
-    location: 'Morbi District Hall',
-    fee:0,
-    category: 'competitions',
-    status: 'open',
-    features: [
-      'Theme-based competition',
-      'Expert jury evaluation',
-      'Trophies and certificates for winners',
-      'Art exhibition of top entries',
-      'Encouragement for creativity and cultural awareness'
-    ],
-    eligibility: [
-      'Students aged 10-18 years',
-      'Open to school and college participants'
-    ],
-    isTeamBased: false,
-    pinned: false,
-    link: 'drawingform'
-  },
+
   {
     id: 'writing-competition',
     title: 'Creative Writing Competition',
@@ -66,9 +64,9 @@ export const activities = [
     duration: '2 hours',
     participants: '800+',
     location: 'Online & Offline Centers',
-    fee:0,
+    fee: 0,
     category: 'competitions',
-    status: 'open',
+    status: 'coming-soon',
     features: [
       'Essay, story, and poem categories',
       'Judged by authors and educators',
@@ -76,7 +74,7 @@ export const activities = [
       'Publication opportunity for best entries'
     ],
     eligibility: [
-      'Students aged 12–20 years',
+      'Students aged 12-20 years',
       'Individual participation only'
     ],
     isTeamBased: false,
@@ -164,5 +162,32 @@ export const activities = [
     maxTeamSize: 3,
     pinned: false,
     link: 'quizform'
-  }
+  },
+  {
+    id: 'drawing-competition',
+    title: 'District Art & Drawing Championship',
+    description: 'A creative platform for young artists to express their imagination through art and drawing.',
+    image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+    date: 'July 10, 2025',
+    duration: '1 day',
+    participants: '1,200+',
+    location: 'Morbi District Hall',
+    fee: 0,
+    category: 'competitions',
+    status: 'closed',
+    features: [
+      'Theme-based competition',
+      'Expert jury evaluation',
+      'Trophies and certificates for winners',
+      'Art exhibition of top entries',
+      'Encouragement for creativity and cultural awareness'
+    ],
+    eligibility: [
+      'Students aged 10-18 years',
+      'Open to school and college participants'
+    ],
+    isTeamBased: false,
+    pinned: false,
+    link: 'drawingform'
+  },
 ];

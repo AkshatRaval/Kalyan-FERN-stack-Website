@@ -18,6 +18,7 @@ import BasicForm from './pages/BasicForm';
 import FormRenderer from './forms/FormRenderer';
 import { activities } from './constants/Apply';
 import AdminRoute from './utils/AdminRoute';
+import QuizLayout, { CertificateScreen } from './forms/Quiz';
 
 
 const App = () => {
@@ -53,6 +54,7 @@ const App = () => {
             }
             <Route path="*" element={<MyApplication />} />
           </Route>
+          <Route path='/quizCerti' element={<QuizLayout />}/>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

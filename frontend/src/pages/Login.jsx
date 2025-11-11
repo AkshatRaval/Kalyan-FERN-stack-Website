@@ -6,8 +6,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { motion } from 'framer-motion'
 import { auth } from '../../firebase';
 import { useAuth } from '../utils/AuthProvider';
-import { signInWithEmailAndPassword } from "firebase/auth";
-
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 
 
 const Login = () => {
@@ -81,6 +80,38 @@ const Login = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const idToken = await user.getIdToken();
+
+      toast.success("Successfully Logged In!", {
+        style: {
+          borderRadius: '10px',
+          background: '#030213',
+          color: '#fff',
+        }
+      });
+      setTimeout(() => {
+        navigate('/')
+      }, 1500);
+
+
+    } catch (error) {
+      // --- Handle Errors ---
+      console.error('Error during Google sign-in:', error.code, error.message);
+
+      // Handle specific errors if needed
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.warn('Sign-in popup closed by user.');
+      }
+    }
+  };
+
   return (
     <section className='min-h-screen bg-secondary flex items-center justify-center'>
       <div className='bg-primary-foreground p-5 rounded-lg shadow-lg w-full max-w-md m-4'>
@@ -126,7 +157,7 @@ const Login = () => {
             <div className='h-0.5 w-full bg-border' />
           </div>
           <div>
-            <button className='w-full border border-border text-primary p-3 rounded-md font-semibold hover:bg-secondary transition flex items-center justify-center gap-3 cursor-pointer'><FaGoogle /> Sign in with Google</button>
+            <button className='w-full border border-border text-primary p-3 rounded-md font-semibold hover:bg-secondary transition flex items-center justify-center gap-3 cursor-pointer' onClick={handleGoogleLogin}><FaGoogle /> Sign in with Google</button>
           </div>
           <div>
             <p className='text-center mt-4'>Don't have an account? <Link to={'/signup'} className='text-primary font-semibold hover:underline'>Sign Up</Link></p>

@@ -30,6 +30,7 @@ const Navigation = () => {
         { name: 'About', page: 'about', current: currentPage === 'about' },
         { name: 'Activities', page: 'activities', current: currentPage === 'activities' },
         { name: 'Apply', page: 'apply', current: currentPage === 'apply' },
+        { name: 'Quiz Here', page: 'quizCerti', current: currentPage === 'quizCerti' },
     ];
     // console.log(currentUser)
 
