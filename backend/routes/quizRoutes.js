@@ -138,11 +138,18 @@ async function initializeSheetHeader(formType) {
 
 
 const quizRoute = Router();
-function getLocalTime(date){
-    var timeZone = "Asia/Kolkata";
-    var utcDate =  new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
-    var dateAndTime = utcDate.toLocaleDateString("en",{timeZone:timeZone})+" "+ utcDate.toLocaleTimeString("en",{timeZone:timeZone}).replace(/:\d+ /, ' ');;
-    return dateAndTime;
+function getLocalTime(date) {
+  const options = {
+    timeZone: "Asia/Kolkata",
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: true // Use 12-hour clock (AM/PM)
+  };
+
+  return date.toLocaleString("en-IN", options);
 }
 quizRoute.post("/api/upload", async (req, res) => {
   try {
@@ -153,7 +160,7 @@ quizRoute.post("/api/upload", async (req, res) => {
 
     await initializeSheetHeader("quizCertificate");
     const sheets = await getSheetsClient();
-
+const myDate = new Date()
     const rowData = [
       user?.fullName,
       user?.email,
@@ -172,7 +179,7 @@ quizRoute.post("/api/upload", async (req, res) => {
       q9a.pan,
       q9a.clientId,
       q9a.regularTrading ? "YES" : "NO",
-      getLocalTime(Date()),
+      getLocalTime(myDate)
     ];
 
     const request = {
