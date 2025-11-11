@@ -51,7 +51,6 @@ const BasicForm = () => {
                 userId: currentUser.uid,
                 userEmail: userEmail,
                 dob: dateOfBirth,
-                aadhar: aadhar,
                 phone: phone,
                 waPhone: waPhone,
                 address: address,
