@@ -18,7 +18,6 @@ import { db } from '../../firebase';
 export default function Profile({ setCurrentPage }) {
   const { currentUser, logout, userData, userApplicationsData } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
-  const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const navigate = useNavigate()
@@ -107,7 +106,7 @@ export default function Profile({ setCurrentPage }) {
               <p className="text-muted-foreground mb-6">
                 You need to be logged in to view your profile.
               </p>
-              <button onClick={() => navigate('/login')} className="w-full bg-primary text-primary-foreground p-2 rounded-lg hover:bg-primary/90 cursor-pointer "> 
+              <button onClick={() => navigate('/login')} className="w-full bg-primary text-primary-foreground p-2 rounded-lg hover:bg-primary/90 cursor-pointer ">
                 Go to Login
               </button>
             </div>
@@ -166,7 +165,16 @@ export default function Profile({ setCurrentPage }) {
 
     return matchesSearch && matchesStatus;
   });
-
+  const fullName = profileData?.personalInfo?.fullName;
+  let initials = ""
+  if (typeof fullName === 'string' && fullName.length > 0) {
+    // Your original code
+    initials = fullName.split(' ').map(n => n[0]).join('');
+    // console.log(initials);
+  } else {
+    // Handle cases where the data is missing or not a string
+    console.error('fullName is not a valid string:', fullName);
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/20">
       {/* Hero Section */}
@@ -189,7 +197,7 @@ export default function Profile({ setCurrentPage }) {
             >
               <Avatar className="w-32 h-32 border-4 border-white shadow-xl">
                 <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-3xl">
-                  {profileData.personalInfo.fullName.split(' ').map(n => n[0]).join('')}
+                  {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-background"></div>

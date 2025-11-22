@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import api from "../lib/api";
 
 const PASSING_SCORE = 1;
@@ -341,6 +341,7 @@ export const CertificateScreen = ({ userName, onDownload }) => {
 };
 
 export default function QuizLayout() {
+  const navigate = useNavigate()
   const [screen, setScreen] = useState("name"); // name, quiz, failure, certificate
   const [user, setUser] = useState({}); // { fullName, email, phone }
   const [qIndex, setQIndex] = useState(0);
@@ -399,28 +400,30 @@ export default function QuizLayout() {
     setQ9aErrors(errs);
     return Object.keys(errs).length === 0;
   };
+const finishQuiz = async (finalAnswers) => {
+    setIsLoading(true); // Start loading
 
-  const finishQuiz = async (finalAnswers) => {
-    if (finalAnswers[9] && finalAnswers[9] === "હા") {
-      setIsLoading(true)
+    if (finalAnswers[9] === "હા") {
       if (!validateQ9a()) {
-        setIsLoading(false)
-        setScreen("q9a"); // custom screen state
+        setIsLoading(false);
+        setScreen("q9a");
         return;
       }
     }
-    
-    setIsLoading(true)
+
     await submitToSheets(finalAnswers);
+
+    if (finalAnswers[9] === "ના") {
+      window.open("https://a.aonelink.in/ANGOne/JAJrFEz", "_blank");
+    }
+
     if (Object.keys(finalAnswers).length >= PASSING_SCORE) {
-      setIsLoading(false)
       setScreen("certificate");
     } else {
-      setIsLoading(false)
       setScreen("failure");
     }
-    setIsLoading(false)
 
+    setIsLoading(false); // Stop loading
   };
   const normalizeAnswers = (answersObj) => {
     if (Array.isArray(answersObj)) return answersObj; // already array

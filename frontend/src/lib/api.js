@@ -9,9 +9,8 @@ api.interceptors.request.use(async (config) => {
   try {
     const user = getAuth().currentUser;
     if (user) {
-      const token = await user.getIdToken(); // get current fresh ID token
+      const token = await user.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
-      // console.log(token
     }
   } catch (err) {
     console.error("Failed to attach token", err);

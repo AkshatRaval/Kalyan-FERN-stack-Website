@@ -18,6 +18,8 @@ const FormRenderer = () => {
     const formName = window.location.pathname.split('/')[2]
     const currentActivity = activities.filter((e) => e.link === formName)[0]
 
+    const nonRequiredSections = (currentActivity?.nonRequired || []).map(s => s.toLowerCase());
+
     const navigate = useNavigate();
 
     if (!currentActivity) {
@@ -290,11 +292,12 @@ const FormRenderer = () => {
                 continue;
             }
 
-            if (!currentActivity.isTeamBased) {
-                if (categoryKey === 'teamInfo') {
-                    continue
-                }
+            // --- CHANGE 3: Update validation logic ---
+            // Check if the section is listed as non-required
+            if (nonRequiredSections.includes(categoryKey.toLowerCase())) {
+                continue; // Skip validation
             }
+            // --- End Change ---
 
             if (categoryKey === 'payments' || categoryKey === 'additionalInfo') {
                 continue;
@@ -306,6 +309,12 @@ const FormRenderer = () => {
             if (typeof categoryValue === 'object' && categoryValue !== null) {
                 for (const inputKey in categoryValue) {
                     const value = categoryValue[inputKey];
+
+                    // --- Add conditional skip for optional fields ---
+                    if (categoryKey === 'teamInfo' && inputKey === 'members') continue;
+                    // 'academicRecords' is optional, 'guardianEmail' is optional
+                    if (inputKey === 'academicRecords' || inputKey === 'guardianEmail') continue;
+
 
                     if (!value) {
                         const fieldName = inputKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
@@ -331,10 +340,14 @@ const FormRenderer = () => {
                     color: '#fff',
                 }
             })
+            // --- ADDED ---
+            setIsSubmitting(false)
+            return;
         }
-        const errorMessage = validate()
 
-        if (formData.academicInfo.previousScore <= 0 || formData.academicInfo.previousScore >= 100) {
+        // --- CHANGE 4: Update validation check for previousScore ---
+        // Only validate previousScore if academicInfo is required
+        if (!nonRequiredSections.includes('academicinfo') && (formData.academicInfo.previousScore <= 0 || formData.academicInfo.previousScore >= 100)) {
             toast.error("Your Previous Score is invalid!", {
                 style: {
                     borderRadius: '10px',
@@ -345,6 +358,8 @@ const FormRenderer = () => {
             setIsSubmitting(false)
             return;
         }
+
+        const errorMessage = validate()
 
         if (errorMessage) {
             toast.error(errorMessage, {
@@ -370,23 +385,57 @@ const FormRenderer = () => {
             return;
         }
 
-        try {
+        try {// create a helper to ensure explicit defaults
+            const defaults = {
+                personalInfo: {
+                    fullName: '', email: '', phone: '', dateOfBirth: '', gender: '',
+                    aadhar: '', address: '', city: '', state: '', pincode: ''
+                },
+                academicInfo: { currentClass: null, school: null, board: null, previousScore: null },
+                guardianInfo: { guardianName: null, guardianPhone: null, guardianEmail: null, relationship: null },
+                teamInfo: { teamName: null, members: [] },
+                documents: { photo: null, idProof: null, academicRecords: null },
+                additionalInfo: { experience: null, expectations: null, specialNeeds: null },
+                payments: { paymentRequired: false, paymentStatus: false, paymentId: '' }
+            };
+
             const fd = new FormData();
 
-            fd.append('personalInfo', JSON.stringify(formData.personalInfo));
-            fd.append('academicInfo', JSON.stringify(formData.academicInfo));
-            fd.append('guardianInfo', JSON.stringify(formData.guardianInfo));
-            fd.append('additionalInfo', JSON.stringify(formData.additionalInfo));
-            fd.append('payments', JSON.stringify(formData.payments));
-            fd.append('teamInfo', JSON.stringify(formData.teamInfo));
+            // Helper to safely append a JSON section (always append - explicit keys)
+            function appendJsonSection(key, payload, isNonRequired) {
+                // If this section is marked non-required, we still append a version with nulls/defaults
+                if (isNonRequired) {
+                    // merge defaults with actual payload to keep keys but prefer actual values
+                    const merged = { ...defaults[key], ...(payload || {}) };
+                    fd.append(key, JSON.stringify(merged));
+                } else {
+                    // required section -> append actual payload but fill missing keys from defaults
+                    const merged = { ...defaults[key], ...(payload || {}) };
+                    fd.append(key, JSON.stringify(merged));
+                }
+            }
 
+            // Append every JSON-like section (always append the section key)
+            appendJsonSection('personalInfo', formData.personalInfo, nonRequiredSections.includes('personalinfo'));
+            appendJsonSection('academicInfo', formData.academicInfo, nonRequiredSections.includes('academicinfo'));
+            appendJsonSection('guardianInfo', formData.guardianInfo, nonRequiredSections.includes('guardianinfo'));
+            appendJsonSection('teamInfo', formData.teamInfo, nonRequiredSections.includes('teaminfo'));
+
+            // Documents: append files if present (but still keep keys above)
             if (formData.documents.photo) fd.append('photo', formData.documents.photo);
             if (formData.documents.idProof) fd.append('idProof', formData.documents.idProof);
-            if (formData.documents.academicRecords) fd.append('academicRecords', formData.documents.academicRecords)
+            if (formData.documents.academicRecords) fd.append('academicRecords', formData.documents.academicRecords);
 
-            const res = await api.post(`/api/user/submit/${currentActivity.link}`, fd)
+            // Always append additionalInfo & payments (you already do)
+            fd.append('additionalInfo', JSON.stringify({ ...defaults.additionalInfo, ...formData.additionalInfo }));
+            fd.append('payments', JSON.stringify({ ...defaults.payments, ...formData.payments }));
+
+            // --- End Change ---
+
+
+            const res = await api.post(`/api/user/submit/${currentActivity.link}`, fd )
             const result = res.data;
-            console.log(result)
+            // console.log(result)
             toast.success("Your Form is submitted Successfully!", {
                 style: {
                     borderRadius: '10px',
@@ -394,7 +443,7 @@ const FormRenderer = () => {
                     color: '#fff',
                 }
             })
-            
+
             navigate(`/application/${currentActivity.link}/${result.id}`);
         } catch (error) {
             toast.error(JSON.stringify(error), {
@@ -452,122 +501,127 @@ const FormRenderer = () => {
                     encType="multipart/form-data"
                 >
                     {/* Personal Information */}
-                    <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm py-5">
-                        <CardHeader className="text-xl font-bold">
-                            {currentActivity.isTeamBased ? "Team Leader Information" : "Personal Information"}
-                        </CardHeader>
-                        <CardContent className='space-y-4'>
-                            <div className='grid md:grid-cols-2 gap-4'>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="fullName" className='font-semibold text-sm'>Full Name <span className='text-destructive'>*</span></Label>
-                                    <Input type="text"
-                                        name="fullName"
-                                        id="fullName"
-                                        value={formData.personalInfo.fullName}
-                                        onChange={(e) => handleInputChange('personalInfo', 'fullName', e.target.value)}
-                                        placeholder="Full Name"
-                                    />
-                                </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="email" className='font-semibold text-sm'>Email Address <span className='text-destructive'>*</span></Label>
-                                    <Input type="email"
-                                        name="email"
-                                        id="email"
-                                        value={formData.personalInfo.email}
-                                        onChange={(e) => handleInputChange('personalInfo', 'email', e.target.value)}
-                                        placeholder="Email Address"
-                                    />
-                                </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="phone" className='font-semibold text-sm'>Phone Number <span className='text-destructive'>*</span></Label>
-                                    <Input
-                                        name="phone"
-                                        id="phone"
-                                        value={formData.personalInfo.phone}
-                                        onChange={(e) => handleInputChange('personalInfo', 'phone', e.target.value)}
-                                        placeholder="Phone Number"
-                                    />
-                                </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="dateOfBirth" className='font-semibold text-sm'>Date of Birth <span className='text-destructive'>*</span></Label>
-                                    <Input
+                    {/* --- CHANGE 2: Update JSX rendering logic --- */}
+                    {!nonRequiredSections.includes('personalinfo') && (
+                        <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm py-5">
+                            <CardHeader className="text-xl font-bold">
+                                {/* Use same logic for the title */}
+                                {!nonRequiredSections.includes('teaminfo') ? "Team Leader Information" : "Personal Information"}
+                            </CardHeader>
+                            <CardContent className='space-y-4'>
+                                <div className='grid md:grid-cols-2 gap-4'>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="fullName" className='font-semibold text-sm'>Full Name <span className='text-destructive'>*</span></Label>
+                                        <Input type="text"
+                                            name="fullName"
+                                            id="fullName"
+                                            value={formData.personalInfo.fullName}
+                                            onChange={(e) => handleInputChange('personalInfo', 'fullName', e.target.value)}
+                                            placeholder="Full Name"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="email" className='font-semibold text-sm'>Email Address <span className='text-destructive'>*</span></Label>
+                                        <Input type="email"
+                                            name="email"
+                                            id="email"
+                                            value={formData.personalInfo.email}
+                                            onChange={(e) => handleInputChange('personalInfo', 'email', e.target.value)}
+                                            placeholder="Email Address"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="phone" className='font-semibold text-sm'>Phone Number <span className='text-destructive'>*</span></Label>
+                                        <Input
+                                            name="phone"
+                                            id="phone"
+                                            value={formData.personalInfo.phone}
+                                            onChange={(e) => handleInputChange('personalInfo', 'phone', e.target.value)}
+                                            placeholder="Phone Number"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="dateOfBirth" className='font-semibold text-sm'>Date of Birth <span className='text-destructive'>*</span></Label>
+                                        <Input
 
-                                        id="dateOfBirth"
-                                        type="date"
-                                        value={formData.personalInfo.dateOfBirth}
-                                        onChange={(e) => handleInputChange('personalInfo', 'dateOfBirth', e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="gender" className='font-semibold text-sm'>Gender <span className='text-destructive'>*</span></Label>
-                                    <Select onValueChange={(value) => handleInputChange('personalInfo', 'gender', value)} id="gender">
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select gender" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="male">Male</SelectItem>
-                                            <SelectItem value="female">Female</SelectItem>
-                                            <SelectItem value="other">Other</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="aadhar" className='font-semibold text-sm'>Aadhar Number <span className='text-destructive'>*</span></Label>
-                                    <Input
+                                            id="dateOfBirth"
+                                            type="date"
+                                            value={formData.personalInfo.dateOfBirth}
+                                            onChange={(e) => handleInputChange('personalInfo', 'dateOfBirth', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="gender" className='font-semibold text-sm'>Gender <span className='text-destructive'>*</span></Label>
+                                        <Select onValueChange={(value) => handleInputChange('personalInfo', 'gender', value)} id="gender">
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select gender" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="male">Male</SelectItem>
+                                                <SelectItem value="female">Female</SelectItem>
+                                                <SelectItem value="other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="aadhar" className='font-semibold text-sm'>Aadhar Number <span className='text-destructive'>*</span></Label>
+                                        <Input
 
-                                        id="aadhar"
-                                        type="text"
-                                        placeholder='Aadhar Number'
-                                        value={formData.personalInfo.aadhar}
-                                        onChange={(e) => handleInputChange('personalInfo', 'aadhar', e.target.value)}
+                                            id="aadhar"
+                                            type="text"
+                                            placeholder='Aadhar Number'
+                                            value={formData.personalInfo.aadhar}
+                                            onChange={(e) => handleInputChange('personalInfo', 'aadhar', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="address">Address <span className='text-destructive'>*</span></Label>
+                                    <Textarea
+                                        id="address"
+                                        placeholder="Address"
+                                        value={formData.personalInfo.address}
+                                        onChange={(e) => handleInputChange('personalInfo', 'address', e.target.value)}
                                     />
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="address">Address <span className='text-destructive'>*</span></Label>
-                                <Textarea
-                                    id="address"
-                                    placeholder="Address"
-                                    value={formData.personalInfo.address}
-                                    onChange={(e) => handleInputChange('personalInfo', 'address', e.target.value)}
-                                />
-                            </div>
-                            <div className="grid md:grid-cols-3 gap-4">
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="city" className='font-semibold text-sm'>City <span className='text-destructive'>*</span></Label>
-                                    <Input
-                                        placeholder="City"
-                                        id="city"
-                                        type="text"
-                                        value={formData.personalInfo.city}
-                                        onChange={(e) => handleInputChange('personalInfo', 'city', e.target.value)}
-                                    />
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="city" className='font-semibold text-sm'>City <span className='text-destructive'>*</span></Label>
+                                        <Input
+                                            placeholder="City"
+                                            id="city"
+                                            type="text"
+                                            value={formData.personalInfo.city}
+                                            onChange={(e) => handleInputChange('personalInfo', 'city', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="state" className='font-semibold text-sm'>State <span className='text-destructive'>*</span></Label>
+                                        <Input
+                                            placeholder="State"
+                                            id="state"
+                                            type="text"
+                                            value={formData.personalInfo.state}
+                                            onChange={(e) => handleInputChange('personalInfo', 'state', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="pincode" className='font-semibold text-sm'>Pincode <span className='text-destructive'>*</span></Label>
+                                        <Input
+                                            placeholder="Pincode"
+                                            id="pincode"
+                                            type="text"
+                                            value={formData.personalInfo.pincode}
+                                            onChange={(e) => handleInputChange('personalInfo', 'pincode', e.target.value)}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="state" className='font-semibold text-sm'>State <span className='text-destructive'>*</span></Label>
-                                    <Input
-                                        placeholder="State"
-                                        id="state"
-                                        type="text"
-                                        value={formData.personalInfo.state}
-                                        onChange={(e) => handleInputChange('personalInfo', 'state', e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="pincode" className='font-semibold text-sm'>Pincode <span className='text-destructive'>*</span></Label>
-                                    <Input
-                                        placeholder="Pincode"
-                                        id="pincode"
-                                        type="text"
-                                        value={formData.personalInfo.pincode}
-                                        onChange={(e) => handleInputChange('personalInfo', 'pincode', e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                    {currentActivity.isTeamBased && (
+                    {/* Team Info */}
+                    {!nonRequiredSections.includes('teaminfo') && (
                         <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm">
                             <CardHeader>
                                 <CardTitle className="text-xl font-bold">Team Information</CardTitle>
@@ -619,117 +673,122 @@ const FormRenderer = () => {
                     )}
 
                     {/* Academic Information  */}
-                    <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm py-5">
-                        <CardHeader className="text-xl font-bold">
-                            Academic Information
-                        </CardHeader>
-                        <CardContent className='space-y-4'>
-                            <div className='grid md:grid-cols-2 gap-4'>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="currentClass" className='font-semibold text-sm'>Current Class/Grade <span className='text-destructive'>*</span></Label>
-                                    <Select onValueChange={(value) => handleInputChange('academicInfo', 'currentClass', value)} id="currentClass">
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Class/Grade" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="5">5</SelectItem>
-                                            <SelectItem value="6">6</SelectItem>
-                                            <SelectItem value="7">7</SelectItem>
-                                            <SelectItem value="8">8</SelectItem>
-                                            <SelectItem value="9">9</SelectItem>
-                                            <SelectItem value="10">10</SelectItem>
-                                            <SelectItem value="11">11</SelectItem>
-                                            <SelectItem value="12">12</SelectItem>
-                                            <SelectItem value="Graduate">Graduate</SelectItem>
-                                            <SelectItem value="Other">Other</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="school" className='font-semibold text-sm'>School/Institution <span className='text-destructive'>*</span></Label>
-                                    <Input type="text"
-                                        name="school"
-                                        id="school"
-                                        value={formData.academicInfo.school}
-                                        onChange={(e) => handleInputChange('academicInfo', 'school', e.target.value)}
-                                        placeholder="School"
-                                    />
-                                </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="board" className='font-semibold text-sm'>Board/University <span className='text-destructive'>*</span></Label>
-                                    <Input
-                                        name="board"
-                                        id="board"
-                                        value={formData.academicInfo.board}
-                                        onChange={(e) => handleInputChange('academicInfo', 'board', e.target.value)}
-                                        placeholder="Board/University"
-                                    />
-                                </div>
-                                <div className="space-y-2 flex flex-col">
-                                    <Label htmlFor="previousScore" className='font-semibold text-sm'> Previous Academic Score (%) <span className='text-destructive'>*</span></Label>
-                                    <Input
+                    {!nonRequiredSections.includes('academicinfo') && (
+                        <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm py-5">
+                            <CardHeader className="text-xl font-bold">
+                                Academic Information
+                            </CardHeader>
+                            <CardContent className='space-y-4'>
+                                <div className='grid md:grid-cols-2 gap-4'>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="currentClass" className='font-semibold text-sm'>Current Class/Grade <span className='text-destructive'>*</span></Label>
+                                        <Select onValueChange={(value) => handleInputChange('academicInfo', 'currentClass', value)} id="currentClass">
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Class/Grade" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="5">5</SelectItem>
+                                                <SelectItem value="6">6</SelectItem>
+                                                <SelectItem value="7">7</SelectItem>
+                                                <SelectItem value="8">8</SelectItem>
+                                                <SelectItem value="9">9</SelectItem>
+                                                <SelectItem value="10">10</SelectItem>
+                                                <SelectItem value="11">11</SelectItem>
+                                                <SelectItem value="12">12</SelectItem>
+                                                <SelectItem value="Graduate">Graduate</SelectItem>
+                                                <SelectItem value="Other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="school" className='font-semibold text-sm'>School/Institution <span className='text-destructive'>*</span></Label>
+                                        <Input type="text"
+                                            name="school"
+                                            id="school"
+                                            value={formData.academicInfo.school}
+                                            onChange={(e) => handleInputChange('academicInfo', 'school', e.target.value)}
+                                            placeholder="School"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="board" className='font-semibold text-sm'>Board/University <span className='text-destructive'>*</span></Label>
+                                        <Input
+                                            name="board"
+                                            id="board"
+                                            value={formData.academicInfo.board}
+                                            onChange={(e) => handleInputChange('academicInfo', 'board', e.target.value)}
+                                            placeholder="Board/University"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 flex flex-col">
+                                        <Label htmlFor="previousScore" className='font-semibold text-sm'> Previous Academic Score (%) <span className='text-destructive'>*</span></Label>
+                                        <Input
 
-                                        id="previousScore"
-                                        type="number"
-                                        value={formData.academicInfo.previousScore}
-                                        onChange={(e) => handleInputChange('academicInfo', 'previousScore', e.target.value)}
-                                    />
+                                            id="previousScore"
+                                            type="number"
+                                            value={formData.academicInfo.previousScore}
+                                            onChange={(e) => handleInputChange('academicInfo', 'previousScore', e.target.value)}
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Parents Information  */}
-                    <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm">
-                        <CardHeader>
-                            <CardTitle className="text-xl font-bold">Guardian Information</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="guardianName">Guardian Name *</Label>
-                                    <Input
-                                        id="guardianName"
-                                        value={formData.guardianInfo.guardianName}
-                                        onChange={(e) => handleInputChange('guardianInfo', 'guardianName', e.target.value)}
-                                    />
+                    {!nonRequiredSections.includes('guardianinfo') && (
+                        <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm">
+                            <CardHeader>
+                                <CardTitle className="text-xl font-bold">Guardian Information</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="guardianName">Guardian Name *</Label>
+                                        <Input
+                                            id="guardianName"
+                                            value={formData.guardianInfo.guardianName}
+                                            onChange={(e) => handleInputChange('guardianInfo', 'guardianName', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="guardianPhone">Guardian Phone *</Label>
+                                        <Input
+                                            id="guardianPhone"
+                                            value={formData.guardianInfo.guardianPhone}
+                                            onChange={(e) => handleInputChange('guardianInfo', 'guardianPhone', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="guardianEmail">Guardian Email</Label>
+                                        <Input
+                                            id="guardianEmail"
+                                            type="email"
+                                            value={formData.guardianInfo.guardianEmail}
+                                            onChange={(e) => handleInputChange('guardianInfo', 'guardianEmail', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="relationship">Relationship *</Label>
+                                        <Select onValueChange={(value) => handleInputChange('guardianInfo', 'relationship', value)}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select relationship" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="father">Father</SelectItem>
+                                                <SelectItem value="mother">Mother</SelectItem>
+                                                <SelectItem value="guardian">Guardian</SelectItem>
+                                                <SelectItem value="other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="guardianPhone">Guardian Phone *</Label>
-                                    <Input
-                                        id="guardianPhone"
-                                        value={formData.guardianInfo.guardianPhone}
-                                        onChange={(e) => handleInputChange('guardianInfo', 'guardianPhone', e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="guardianEmail">Guardian Email</Label>
-                                    <Input
-                                        id="guardianEmail"
-                                        type="email"
-                                        value={formData.guardianInfo.guardianEmail}
-                                        onChange={(e) => handleInputChange('guardianInfo', 'guardianEmail', e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="relationship">Relationship *</Label>
-                                    <Select onValueChange={(value) => handleInputChange('guardianInfo', 'relationship', value)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select relationship" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="father">Father</SelectItem>
-                                            <SelectItem value="mother">Mother</SelectItem>
-                                            <SelectItem value="guardian">Guardian</SelectItem>
-                                            <SelectItem value="other">Other</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Additional Information */}
+                    {/* This section is always shown, so no conditional logic */}
                     <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm">
                         <CardHeader>
                             <CardTitle className="text-xl font-bold">Additional Information</CardTitle>
@@ -766,60 +825,62 @@ const FormRenderer = () => {
                     </Card>
 
                     {/* Document */}
-                    <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm">
-                        <CardHeader>
-                            <CardTitle className="text-xl font-bold">Document Upload</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid md:grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="photo" className='flex flex-col items-start'>Recent Photo *
-                                        <div className="border-2 border-dashed w-full border-muted-foreground/25 rounded-lg p-4 text-center">
-                                            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                                            <p className="text-sm text-muted-foreground">Click to upload photo</p>
-                                        </div>
-                                    </Label>
-                                    <input
-                                        id='photo'
-                                        type="file"
-                                        accept="image/*"
-                                        className="hidden"
-                                        onChange={(e) => handleFileUpload('photo', e.target.files?.[0] || null)}
-                                    />
+                    {!nonRequiredSections.includes('documents') && (
+                        <Card className="border-none shadow-xl bg-background/60 backdrop-blur-sm">
+                            <CardHeader>
+                                <CardTitle className="text-xl font-bold">Document Upload</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="photo" className='flex flex-col items-start'>Recent Photo *
+                                            <div className="border-2 border-dashed w-full border-muted-foreground/25 rounded-lg p-4 text-center">
+                                                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                                                <p className="text-sm text-muted-foreground">Click to upload photo</p>
+                                            </div>
+                                        </Label>
+                                        <input
+                                            id='photo'
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => handleFileUpload('photo', e.target.files?.[0] || null)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="idProof" className='flex flex-col items-start'>ID Proof *
+                                            <div className="border-2 border-dashed w-full border-muted-foreground/25 rounded-lg p-4 text-center">
+                                                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                                                <p className="text-sm text-muted-foreground">Upload ID proof</p>
+                                            </div>
+                                        </Label>
+                                        <input
+                                            id='idProof'
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            className="hidden"
+                                            onChange={(e) => handleFileUpload('idProof', e.target.files?.[0] || null)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="academicRecords" className='flex flex-col items-start'>Academic Records
+                                            <div className="border-2 border-dashed w-full border-muted-foreground/25 rounded-lg p-4 text-center">
+                                                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                                                <p className="text-sm text-muted-foreground">Upload mark sheets</p>
+                                            </div>
+                                        </Label>
+                                        <input
+                                            id='academicRecords'
+                                            type="file"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            className="hidden"
+                                            onChange={(e) => handleFileUpload('academicRecords', e.target.files?.[0] || null)}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="idProof" className='flex flex-col items-start'>ID Proof *
-                                        <div className="border-2 border-dashed w-full border-muted-foreground/25 rounded-lg p-4 text-center">
-                                            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                                            <p className="text-sm text-muted-foreground">Upload ID proof</p>
-                                        </div>
-                                    </Label>
-                                    <input
-                                        id='idProof'
-                                        type="file"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        className="hidden"
-                                        onChange={(e) => handleFileUpload('idProof', e.target.files?.[0] || null)}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="academicRecords" className='flex flex-col items-start'>Academic Records
-                                        <div className="border-2 border-dashed w-full border-muted-foreground/25 rounded-lg p-4 text-center">
-                                            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                                            <p className="text-sm text-muted-foreground">Upload mark sheets</p>
-                                        </div>
-                                    </Label>
-                                    <input
-                                        id='academicRecords'
-                                        type="file"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        className="hidden"
-                                        onChange={(e) => handleFileUpload('academicRecords', e.target.files?.[0] || null)}
-                                    />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {formData.payments.paymentRequired && <Card className="w-full p-5 shadow-2xl">
                         <CardContent className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -926,7 +987,7 @@ const FormRenderer = () => {
                 </motion.div>
             )}
 
-        </div >
+        </div>
     )
 }
 
