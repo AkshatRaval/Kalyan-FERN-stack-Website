@@ -114,8 +114,8 @@ const Home = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
             >
-              Fostering educational excellence and charitable initiatives to create opportunities
-              for every student to <span className="text-primary font-medium">thrive and succeed</span>.
+              Fostering strength and awareness through our safety initiatives, creating opportunities
+              for every woman to <span className="text-primary font-medium">protect herself, prosper, and succeed</span>.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -128,9 +128,8 @@ const Home = () => {
               <button
                 size="lg"
                 className="group h-14 px-8 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center cursor-pointer"
-                onClick={() => navigate('/activities')}
-              >
-                <span className="text-lg font-medium">Explore Activities</span>
+                onClick={() => navigate('/application/women-safety-form')}>
+                <span className="text-lg font-medium">Apply For Women Safety Camp</span>
                 <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform duration-200" />
               </button>
               <button
@@ -144,7 +143,6 @@ const Home = () => {
           </motion.div>
         </div>
       </section>
-
       <section className="py-20 bg-gradient-to-t from-background to-accent/20">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">

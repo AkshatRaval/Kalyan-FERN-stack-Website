@@ -17,37 +17,29 @@ const FormRenderer = () => {
 
     const formName = window.location.pathname.split('/')[2]
     const currentActivity = activities.filter((e) => e.link === formName)[0]
-
+    const publicForms = ["women-safety-camp"];
     const nonRequiredSections = (currentActivity?.nonRequired || []).map(s => s.toLowerCase());
-
+    const isPublic = publicForms.includes(formName);
     const navigate = useNavigate();
-
-    if (!currentActivity) {
-        useEffect(() => {
+    const [isClosed, setIsClosed] = useState(false)
+    useEffect(() => {
+        if (!currentActivity) {
             navigate('/');
-        }, []);
-        return null; // Render nothing while redirecting
-    }
+            return null;
+        }
+    }, []);
+    // console.log(currentActivity)
+    useEffect(() => {
+        if (currentActivity.status === "closed") {
+            setIsClosed(true)
+        }
+    }, []);
+
 
     document.title = `Kalyan | ${currentActivity.title}`
 
     const { currentUser, userData } = useAuth()
-    // console.log(currentUser)
-
-    if (!currentUser) {
-        toast.error("You're not Logged In!", {
-            style: {
-                borderRadius: '10px',
-                background: '#030213',
-                color: '#fff',
-            }
-        })
-
-        useEffect(() => {
-            navigate('/login')
-        }, [])
-        return
-    }
+    // console.log(formName)
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
@@ -97,18 +89,19 @@ const FormRenderer = () => {
         consent: false
     });
 
-    useEffect(() => {
-        if (!currentUser) {
-            toast.error("You're not Logged In!", {
-                style: {
-                    borderRadius: '10px', background: '#030213', color: '#fff',
-                }
-            });
-            navigate('/login');
-        }
-    }, [currentUser]);
+    // Uncomment this for login needed
 
-    // console.log(formData)
+    // useEffect(() => {
+
+    //     if (!currentUser && !isPublic) {
+    //         toast.error("You're not Logged In!", {
+    //             style: {
+    //                 borderRadius: '10px', background: '#030213', color: '#fff',
+    //             }
+    //         });
+    //         navigate('/login');
+    //     }
+    // }, [currentUser, formName]);
 
     const handleInputChange = (section, field, value) => {
         setFormData(prev => ({
@@ -175,6 +168,7 @@ const FormRenderer = () => {
             return true;
         }
     }
+
     const serviceId = 'service_h7x526j';
     const templateId = 'template_v87pkxg';
     const publicId = 'AVIwzEQbBV_Q4mLkn';
@@ -291,9 +285,6 @@ const FormRenderer = () => {
                 }
                 continue;
             }
-
-            // --- CHANGE 3: Update validation logic ---
-            // Check if the section is listed as non-required
             if (nonRequiredSections.includes(categoryKey.toLowerCase())) {
                 continue; // Skip validation
             }
@@ -309,7 +300,9 @@ const FormRenderer = () => {
             if (typeof categoryValue === 'object' && categoryValue !== null) {
                 for (const inputKey in categoryValue) {
                     const value = categoryValue[inputKey];
-
+                    if (currentActivity?.fee == 0) {
+                        if (categoryKey === 'personalInfo' && inputKey === 'aadhar') continue;
+                    }
                     // --- Add conditional skip for optional fields ---
                     if (categoryKey === 'teamInfo' && inputKey === 'members') continue;
                     // 'academicRecords' is optional, 'guardianEmail' is optional
@@ -332,19 +325,20 @@ const FormRenderer = () => {
         e.preventDefault();
 
         setIsSubmitting(true)
-        if (!validateAadhaar(formData.personalInfo.aadhar)) {
-            toast.error("Aadhaar Is Invalid!", {
-                style: {
-                    borderRadius: '10px',
-                    background: '#030213',
-                    color: '#fff',
-                }
-            })
-            // --- ADDED ---
-            setIsSubmitting(false)
-            return;
+        if (currentActivity?.fee != 0) {
+            if (!validateAadhaar(formData.personalInfo.aadhar)) {
+                toast.error("Aadhaar Is Invalid!", {
+                    style: {
+                        borderRadius: '10px',
+                        background: '#030213',
+                        color: '#fff',
+                    }
+                })
+                // --- ADDED ---
+                setIsSubmitting(false)
+                return;
+            }
         }
-
         // --- CHANGE 4: Update validation check for previousScore ---
         // Only validate previousScore if academicInfo is required
         if (!nonRequiredSections.includes('academicinfo') && (formData.academicInfo.previousScore <= 0 || formData.academicInfo.previousScore >= 100)) {
@@ -433,7 +427,7 @@ const FormRenderer = () => {
             // --- End Change ---
 
 
-            const res = await api.post(`/api/user/submit/${currentActivity.link}`, fd )
+            const res = await api.post(`/api/user/submit/${currentActivity.link}`, fd)
             const result = res.data;
             // console.log(result)
             toast.success("Your Form is submitted Successfully!", {
@@ -457,6 +451,43 @@ const FormRenderer = () => {
             setIsSubmitting(false)
         }
     }
+
+    if (isClosed) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/20 to-secondary/30 px-6">
+                <Card className="max-w-xl w-full text-center border-none shadow-2xl bg-background/70 backdrop-blur-sm">
+                    <CardHeader>
+                        <CardTitle className="text-3xl font-black text-destructive">
+                            Applications Closed 🚫
+                        </CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                        <p className="text-muted-foreground text-lg">
+                            The application for
+                            <span className="font-semibold text-foreground">
+                                {" "}{currentActivity.title}
+                            </span>
+                            {" "}has been closed.
+                        </p>
+
+                        <p className="text-sm text-muted-foreground">
+                            Thank you for your interest. Please check back later or explore other active programs.
+                        </p>
+
+                        <Link
+                            to="/"
+                            className="inline-flex items-center justify-center mt-6 px-6 py-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Home
+                        </Link>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
     return (
         <div className="relative min-h-screen bg-gradient-to-br from-background via-accent/20 to-secondary/30">
             <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
@@ -563,7 +594,7 @@ const FormRenderer = () => {
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="space-y-2 flex flex-col">
+                                    {currentActivity?.fee != 0 && <div className="space-y-2 flex flex-col">
                                         <Label htmlFor="aadhar" className='font-semibold text-sm'>Aadhar Number <span className='text-destructive'>*</span></Label>
                                         <Input
 
@@ -573,7 +604,7 @@ const FormRenderer = () => {
                                             value={formData.personalInfo.aadhar}
                                             onChange={(e) => handleInputChange('personalInfo', 'aadhar', e.target.value)}
                                         />
-                                    </div>
+                                    </div>}
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="address">Address <span className='text-destructive'>*</span></Label>

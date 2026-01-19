@@ -16,7 +16,7 @@ async function toBase64FromUrl(url) {
     return `data:${mimeType};base64,${base64}`;
   } catch (err) {
     console.warn("toBase64FromUrl failed for", url, err?.message || err);
-    return ""; // return empty so caller can handle gracefully
+    return ""; 
   }
 }
 
@@ -190,7 +190,7 @@ export const makePdf = async (data, applicationId) => {
   <div class="container">
     <div class="header">
       <div>
-        <h1>Student Application Form</h1>
+        <h1>Application Form</h1>
         <div class="info-row">Application ID: <strong>${applicationId}</strong> | Date: <strong>${new Date().toLocaleString()}</strong></div>
       </div>
       ${logoBase64 ? `<img src="data:image/svg+xml;base64,${logoBase64}" class="logo" alt="logo">` : ''}

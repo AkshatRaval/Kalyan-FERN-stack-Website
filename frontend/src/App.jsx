@@ -18,7 +18,7 @@ import BasicForm from './pages/BasicForm';
 import FormRenderer from './forms/FormRenderer';
 import { activities } from './constants/Apply';
 import AdminRoute from './utils/AdminRoute';
-import QuizLayout, { CertificateScreen } from './forms/Quiz';
+import QuizLayout from './forms/Quiz';
 
 
 const App = () => {
