@@ -18,44 +18,47 @@ import BasicForm from './pages/BasicForm';
 import FormRenderer from './forms/FormRenderer';
 import { activities } from './constants/Apply';
 import AdminRoute from './utils/AdminRoute';
-import QuizLayout from './forms/Quiz';
+import { lazy, Suspense } from 'react';
+import BudgetQuiz from './forms/Quiz';
+// const QuizLayout = lazy(() => import('./forms/Quiz'))
 
 
 const App = () => {
 
   const allLinks = activities.map(activity => activity.link);
   const distinctLinks = [...new Set(allLinks)];
-  // console.log(distinctLinks)
 
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="*" element={<NotFound />} />
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path='userform' element={<BasicForm />} />
-            <Route path='profile' element={<Profile />} />
-            <Route path='about' element={<About />} />
-            <Route path='admin' element={
-              <AdminRoute>
-                <Admin />
-              </AdminRoute>
-            } />
-            <Route path='activities' element={<Activities />} />
-            <Route path='apply' element={<Apply />} />
-            <Route path='login' element={<Login />} />
-            <Route path='signup' element={<Signup />} />
-          </Route>
-          <Route path="/application" element={<ApplicationLayout />}>
-            {distinctLinks.map((route) => (
-              <Route path={route} element={<FormRenderer />} />
-            ))
-            }
-            <Route path="*" element={<MyApplication />} />
-          </Route>
-          <Route path='/quizCerti' element={<QuizLayout />}/>
-        </Routes>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Routes>
+            <Route path="*" element={<NotFound />} />
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path='userform' element={<BasicForm />} />
+              <Route path='profile' element={<Profile />} />
+              <Route path='about' element={<About />} />
+              <Route path='admin' element={
+                <AdminRoute>
+                  <Admin />
+                </AdminRoute>
+              } />
+              <Route path='activities' element={<Activities />} />
+              <Route path='apply' element={<Apply />} />
+              <Route path='login' element={<Login />} />
+              <Route path='signup' element={<Signup />} />
+              <Route path='quiz' element={<BudgetQuiz />} />
+            </Route>
+            <Route path="/application" element={<ApplicationLayout />}>
+              {distinctLinks.map((route) => (
+                <Route path={route} element={<FormRenderer />} />
+              ))
+              }
+              <Route path="*" element={<MyApplication />} />
+            </Route>
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   )
