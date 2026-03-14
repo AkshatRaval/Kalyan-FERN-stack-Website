@@ -9,7 +9,7 @@ export const QUIZ_CONFIG = {
   subtitle: "Kalyan Education Charitable Trust",
   timerPerQuestion: 10, // seconds per question
   passingScore: 50,     // % to be considered passing
-  quiz_open: false,
+  quiz_open: true,
 };
 export const QUIZ_QUESTIONS = [
   {
