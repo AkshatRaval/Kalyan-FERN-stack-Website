@@ -30,9 +30,9 @@ export const galleryImages = [
   },
   {
     id: '4',
-    url: '',
-    title: 'Library Reading Program',
-    description: 'Students engaging in intensive reading and research activities in our well-equipped library.',
+    url: 'assets/gallery/woman1.jpeg',
+    title: 'Women Safety & Self Defence Workshop',
+    description: 'A practical training camp to empower girls and women with vital self-defence skills and safety awareness.',
     date: 'December 10, 2023',
     location: 'Central Library',
     participants: 200,
@@ -89,10 +89,10 @@ export const galleryImages = [
   },
   {
     id: '10',
-    url: '',
-    title: 'Hands-on Workshop',
-    description: 'Practical learning workshop where students apply theoretical knowledge in real-world scenarios.',
-    date: 'June 5, 2023',
+    url: 'assets/gallery/woman2.jpeg',
+    title: 'Morbi Women Safety & Self Defence Workshop',
+    description: 'Practical learning workshop where women learns how to be safe and self aware.',
+    date: 'June 5, 2024',
     location: 'Workshop Hall',
     participants: 40,
     height: 360

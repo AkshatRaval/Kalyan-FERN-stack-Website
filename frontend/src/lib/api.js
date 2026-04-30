@@ -2,8 +2,8 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 
 const api = axios.create({
-    baseURL: "https://kalyangcg.in" || "https://www.kalyangcg.in"
-})
+  baseURL: import.meta.env.VITE_API_URL
+});
 
 api.interceptors.request.use(async (config) => {
   try {

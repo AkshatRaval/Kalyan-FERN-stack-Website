@@ -1,40 +1,128 @@
 // constants/Apply.js
 // ─────────────────────────────────────────────────────────────────────────────
-// HOW TO CONFIGURE A FORM:
+// SINGLE SOURCE OF TRUTH for all form activities.
 //
-//  sections: []  — list ONLY the sections you want shown (in order)
-//    Available: 'personalInfo' | 'teamInfo' | 'academicInfo' |
-//               'guardianInfo' | 'additionalInfo' | 'documents' |
-//               'topicSelection'
+// To add a new field:  add one object to fields[]
+// To hide a field:     delete it from fields[]
+// To make optional:    set required: false
+// To add validation:   validate: (v, allValues) => true | 'error message'
+// To add a new type:   add a case in FieldWidget.jsx
 //
-//  fieldOverrides: {}  — per-section field customisation
-//    hide:    ['fieldName']  — hide specific fields inside a section
-//    require: ['fieldName']  — mark extra fields as required
+// Field types:
+//   text | email | tel | date | number | url
+//   textarea | select | radio | checkbox | file
+//   topic-picker | members (special composite widgets)
 //
-//  topicConfig: {}  — powers the topicSelection section
-//    label:         string          — section heading
-//    description:   string          — subtitle shown to user
-//    selectionMode: 'single'|'multi'
-//    maxSelections: number          — (multi only) max topics user can pick
-//    groups: []  — topic groups, each:
-//      id:     string
-//      label:  string              — group heading
-//      grades: string[] | '*'      — which grades see this group
-//                                    '*' = always visible (open/founders track)
-//      topics: []
-//        id:          string
-//        label:       string
-//        description: string        — optional subtitle under the label
+// Section keys (just grouping labels — not coupled to backend):
+//   personal | team | academic | guardian | documents | topics | extra | consent
 // ─────────────────────────────────────────────────────────────────────────────
 
+const GUJARAT_DISTRICTS = [
+  'Ahmedabad', 'Amreli', 'Anand', 'Aravalli', 'Banaskantha', 'Bharuch',
+  'Bhavnagar', 'Botad', 'Chhota Udaipur', 'Dahod', 'Dang', 'Devbhoomi Dwarka',
+  'Gandhinagar', 'Gir Somnath', 'Jamnagar', 'Junagadh', 'Kheda', 'Kutch',
+  'Mahisagar', 'Mehsana', 'Morbi', 'Narmada', 'Navsari', 'Panchmahal',
+  'Patan', 'Porbandar', 'Rajkot', 'Sabarkantha', 'Surat', 'Surendranagar',
+  'Tapi', 'Vadodara', 'Valsad',
+];
+
+const GRADES = ['5', '6', '7', '8', '9', '10', '11', '12', 'Graduate', 'Other'];
+
+// ─── Reusable field presets ───────────────────────────────────────────────────
+// Import these into any activity's fields[] to avoid repetition.
+
+export const PERSONAL_FIELDS = [
+  { id: 'fullName', section: 'personal', type: 'text', label: 'Full Name', required: true },
+  { id: 'email', section: 'personal', type: 'email', label: 'Email Address', required: true },
+  { id: 'phone', section: 'personal', type: 'tel', label: 'Phone Number', required: true },
+  { id: 'dateOfBirth', section: 'personal', type: 'date', label: 'Date of Birth', required: true },
+  {
+    id: 'gender', section: 'personal', type: 'select', label: 'Gender', required: true,
+    options: ['Male', 'Female', 'Other']
+  },
+  {
+    id: 'address', section: 'personal', type: 'textarea', label: 'Address', required: true, colSpan: 2,
+    placeholder: 'House/Flat No., Street, Area'
+  },
+  {
+    id: 'city', section: 'personal', type: 'select', label: 'District', required: true,
+    options: GUJARAT_DISTRICTS
+  },
+  {
+    id: 'state', section: 'personal', type: 'text', label: 'State', required: false,
+    defaultValue: 'Gujarat', readOnly: true
+  },
+  {
+    id: 'pincode', section: 'personal', type: 'text', label: 'Pincode', required: true,
+    placeholder: '6-digit pincode',
+    validate: (v) => /^\d{6}$/.test(v) || 'Pincode must be 6 digits'
+  },
+];
+
+export const PERSONAL_WITH_AADHAR = [
+  ...PERSONAL_FIELDS,
+  {
+    id: 'aadhar', section: 'personal', type: 'text', label: 'Aadhar Number', required: true,
+    placeholder: '12-digit Aadhar number',
+    validate: (v) => /^\d{12}$/.test(v) || 'Aadhar must be exactly 12 digits'
+  },
+];
+
+export const ACADEMIC_FIELDS = [
+  { id: 'currentClass', section: 'academic', type: 'select', label: 'Current Grade / Class', required: true, options: GRADES },
+  { id: 'school', section: 'academic', type: 'text', label: 'School / Institution', required: false, placeholder: 'School or college name' },
+  { id: 'board', section: 'academic', type: 'text', label: 'Board / University', required: false, placeholder: 'e.g. GSEB, CBSE, GTU' },
+  {
+    id: 'previousScore', section: 'academic', type: 'number', label: 'Previous Score (%)', required: false,
+    placeholder: 'e.g. 85', validate: (v) => (!v || (Number(v) >= 0 && Number(v) <= 100)) || 'Score must be 0-100'
+  },
+];
+
+export const GUARDIAN_FIELDS = [
+  { id: 'guardianName', section: 'guardian', type: 'text', label: 'Guardian Name', required: true },
+  { id: 'guardianPhone', section: 'guardian', type: 'tel', label: 'Guardian Phone', required: true },
+  { id: 'guardianEmail', section: 'guardian', type: 'email', label: 'Guardian Email', required: false },
+  {
+    id: 'relationship', section: 'guardian', type: 'select', label: 'Relationship', required: true,
+    options: ['Father', 'Mother', 'Guardian', 'Other']
+  },
+];
+
+export const DOCUMENT_FIELDS = [
+  { id: 'photo', section: 'documents', type: 'file', label: 'Recent Photo', required: true, accept: 'image/*' },
+  { id: 'idProof', section: 'documents', type: 'file', label: 'ID Proof', required: true, accept: '.pdf,.jpg,.jpeg,.png' },
+  { id: 'academicRecords', section: 'documents', type: 'file', label: 'Academic Records', required: false, accept: '.pdf,.jpg,.jpeg,.png' },
+];
+export const INFLUENCER_FIELDS = [
+  {id: 'isInfluencer', section: "extra", type: "text", label: "Are you Content Creator? (If yes type Your @ / If no type 'NO')"}
+]
+export const ADDITIONAL_FIELDS = [
+  { id: 'experience', section: 'extra', type: 'textarea', label: 'Previous Experience', required: false, placeholder: 'Tell us about any relevant experience' },
+  { id: 'expectations', section: 'extra', type: 'textarea', label: 'What do you expect?', required: false, placeholder: 'Share your goals and expectations' },
+  { id: 'specialNeeds', section: 'extra', type: 'textarea', label: 'Special Needs / Accommodations', required: false, placeholder: 'Any special requirements' },
+];
+
+export const TEAM_FIELDS = (maxTeamSize = 4) => [
+  { id: 'teamName', section: 'team', type: 'text', label: 'Team Name', required: true, colSpan: 2, placeholder: 'e.g. The Innovators' },
+  { id: 'members', section: 'team', type: 'members', label: 'Team Members (excluding leader)', required: false, maxMembers: maxTeamSize - 1 },
+];
+
+export const CONSENT_FIELD = {
+  id: 'consent', section: 'consent', type: 'checkbox', colSpan: 2,
+  label: 'I hereby declare that the information provided is true and correct. I agree to the terms and conditions of Kalyan Trust.',
+  required: true,
+};
+
+// ─── Activities ───────────────────────────────────────────────────────────────
+
 export const activities = [
+
+  // ── Women Safety Camp ───────────────────────────────────────────────────────
   {
     id: 'women-safety-camp',
     title: 'Morbi Women Safety & Self Defence Workshop',
-    description:
-      'A practical training camp to empower girls and women with vital self-defence skills and safety awareness.',
-    image:
-      'https://img.freepik.com/premium-photo/diverse-female-construction-workers-hard-hats-generative-ai-raw-illustration_167857-39164.jpg?semt=ais_hybrid&w=740&q=80',
+    description: 'A practical training camp to empower girls and women with vital self-defence skills and safety awareness.',
+    image: 'https://img.freepik.com/premium-photo/diverse-female-construction-workers-hard-hats-generative-ai-raw-illustration_167857-39164.jpg',
     date: 'To Be Announced',
     duration: '3 hours',
     participants: '300+',
@@ -42,265 +130,167 @@ export const activities = [
     fee: 0,
     category: 'workshops',
     status: 'closed',
-    features: [
-      'Practical self-defence techniques',
-      'Safety awareness & confidence building',
-      'Empowering fitness-based training',
-    ],
-    eligibility: ['Open for all girls and women', 'No age limit'],
     pinned: true,
     link: 'women-safety-form',
-    sections: ['personalInfo', 'additionalInfo'],
-    fieldOverrides: {
-      personalInfo: { hide: ['aadhar', 'dateOfBirth'] },
-    },
+    features: ['Practical self-defence techniques', 'Safety awareness & confidence building'],
+    eligibility: ['Open for all girls and women', 'No age limit'],
+
+    fields: [
+      // No aadhar, no dateOfBirth for this one
+      { id: 'fullName', section: 'personal', type: 'text', label: 'Full Name', required: true },
+      { id: 'email', section: 'personal', type: 'email', label: 'Email', required: true },
+      { id: 'phone', section: 'personal', type: 'tel', label: 'Phone Number', required: true },
+      { id: 'gender', section: 'personal', type: 'select', label: 'Gender', required: true, options: ['Male', 'Female', 'Other'] },
+      { id: 'address', section: 'personal', type: 'textarea', label: 'Address', required: true, colSpan: 2 },
+      { id: 'city', section: 'personal', type: 'select', label: 'District', required: true, options: GUJARAT_DISTRICTS },
+      { id: 'state', section: 'personal', type: 'text', label: 'State', required: false, defaultValue: 'Gujarat', readOnly: true },
+      { id: 'pincode', section: 'personal', type: 'text', label: 'Pincode', required: true },
+
+      ...ADDITIONAL_FIELDS,
+      CONSENT_FIELD,
+    ],
   },
 
+  // ── GCG Exam ────────────────────────────────────────────────────────────────
   {
     id: 'gcg-exam',
     title: 'GCG Scholarship Examination',
-    description:
-      'Our flagship state-level scholarship exam to identify, reward, and mentor outstanding students.',
-    image:
-      'https://images.unsplash.com/flagged/photo-1574097656146-0b43b7660cb6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+    description: 'Our flagship state-level scholarship exam to identify, reward, and mentor outstanding students.',
+    image: 'https://images.unsplash.com/flagged/photo-1574097656146-0b43b7660cb6?w=1080',
     date: 'March 15, 2025',
     duration: '3 hours',
-    participants: '10,000+ expected',
+    participants: '10,000+',
     location: 'Multiple Centers across Gujarat',
     fee: 0,
     category: 'exams',
     status: 'coming-soon',
-    features: [
-      'Three-stage: Knowledge Test, Project, and Quiz',
-      'Merit-based scholarships',
-      'Mentorship for top 100 students',
-      'Digital certificates for all participants',
-    ],
-    eligibility: ['Students in grades 8-12', 'Age: 13-18 years', 'Valid school enrollment'],
     pinned: false,
     link: 'gcgform',
-    sections: ['personalInfo', 'academicInfo', 'guardianInfo', 'documents', 'additionalInfo'],
-    fieldOverrides: {},
-  },
+    features: ['Three-stage: Knowledge Test, Project, and Quiz', 'Merit-based scholarships'],
+    eligibility: ['Students in grades 8-12', 'Valid school enrollment'],
 
-  {
-    id: 'writing-competition',
-    title: 'Creative Writing Competition',
-    description:
-      'A literary event encouraging students to express their ideas through the power of writing.',
-    image:
-      'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    date: 'August 25, 2025',
-    duration: '2 hours',
-    participants: '800+',
-    location: 'Online & Offline Centers',
-    fee: 0,
-    category: 'competitions',
-    status: 'coming-soon',
-    features: [
-      'Essay, story, and poem categories',
-      'Judged by renowned authors and educators',
-      'Certificates for all participants',
+    fields: [
+      ...PERSONAL_FIELDS,
+      ...ACADEMIC_FIELDS,
+      ...GUARDIAN_FIELDS,
+      ...DOCUMENT_FIELDS,
+      ...ADDITIONAL_FIELDS,
+      CONSENT_FIELD,
     ],
-    eligibility: ['Students aged 12-20 years', 'Individual participation only'],
-    pinned: false,
-    link: 'writingform',
-    sections: ['personalInfo', 'academicInfo', 'additionalInfo'],
-    fieldOverrides: {},
   },
 
-  // ─── LOCAL SHARK TANK ──────────────────────────────────────────────────────
+  // Morbi treasure Hunt
   {
-    id: 'local-shark-program',
-    title: 'Local Shark - Student Innovation Challenge',
-    description:
-      'An "Invest-Pitch" platform where young innovators pitch ideas to receive funding, mentorship, and exposure.',
-    image:
-      'https://images.unsplash.com/photo-1759171669032-beafad2287ee?w=600&auto=format&fit=crop&q=60',
-    date: 'December 2025',
-    duration: '3 days',
+    id: 'city-treasure-hunt-morbi',
+    title: 'Mission Morbi: The Midnight ',
+    description: 'A fast-paced outdoor treasure hunt where teams solve clues, race across checkpoints, and compete for the final prize.',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=1080',
+    date: 'May 2026',
+    duration: '2-3 Hours',
+    participants: '25',
+    location: 'Selected Area Morbi',
+    fee: 200,
+    category: 'competitions',
+    status: 'open',
+    pinned: true,
+    link: 'midnightMystry',
+    maxTeamSize: 3,
+    features: ['Real-world clue-based treasure hunt',
+      'Multiple checkpoints across the city',
+      'QR code + physical clue system',
+      'Live leaderboard tracking',
+      'Cash prize + trophy for winners'],
+    eligibility: ['Age 18-30 only',
+      'Team of 2-4 members',
+      'Must carry smartphone with internet',
+      'Basic physical mobility required'],
+
+    fields: [
+      ...PERSONAL_FIELDS,
+      ...INFLUENCER_FIELDS,
+      CONSENT_FIELD,
+    ],
+  },
+
+  // ── Saurashtra Ideathon ─────────────────────────────────────────────────────
+  {
+    id: 'saurashtra-ideathon-2026',
+    title: 'Saurashtra Ideathon 2026',
+    description: 'A district-level innovation challenge where students pitch bold ideas to mentors, investors, and industry leaders.',
+    image: 'https://images.unsplash.com/photo-1759171669032-beafad2287ee?w=600',
+    date: 'February 2026',
+    duration: '2 days',
     participants: '500+ teams',
-    location: 'Ahmedabad & Morbi (Hybrid Event)',
+    location: 'Saurashtra Region, Gujarat',
     fee: 100,
     category: 'entrepreneurships',
-    status: 'coming-soon',
-    features: [
-      'Pitch to real investors',
-      'Intensive startup mentorship',
-      'Funding opportunities for top ideas',
-      'Networking with business leaders',
-    ],
-    eligibility: [
-      'School (grade 9-12), college students, and founders (18-30 years)',
-      'Solo or team participation (max 4 members)',
-      'Fee is payable per team',
-    ],
-    maxTeamSize: 4,
+    status: 'open',
     pinned: true,
-    link: 'sharktankform',
+    link: 'ideathonform',
+    maxTeamSize: 4,
+    features: ['Pitch to real investors & mentors', 'Funding opportunities for top ideas'],
+    eligibility: ['Grade 9-12, college students, founders (18-30)', 'Solo or team (max 4)'],
+    downloadPdf: "/files/SAURASHTRA_IDIATHON_2026.pdf",
+    fields: [
+      ...PERSONAL_WITH_AADHAR,
+      ...TEAM_FIELDS(4),
+      ...ACADEMIC_FIELDS,
 
-    // topicSelection comes AFTER academicInfo so the grade is known when filtering
-    sections: [
-      'personalInfo',
-      'teamInfo',
-      'academicInfo',
-      'topicSelection',
-      'documents',
-      'additionalInfo',
+      // Topic picker — grade-aware
+      {
+        id: 'topics', section: 'topics', type: 'topic-picker',
+        label: 'Innovation Domain', required: true,
+        selectionMode: 'single',
+        gradeField: 'currentClass',
+        groups: [
+          {
+            id: 'school-junior', label: 'School Track — Grade 9 & 10', grades: ['9', '10'],
+            topics: [
+              { id: 'plastic-free', label: 'Plastic-Free Initiative', description: 'Promote reduction of plastic use in daily activities like vegetable shopping' },
+              { id: 'food-waste', label: 'Food Waste Management', description: 'Redistribute leftover food from events to needy people efficiently' },
+              { id: 'cooling-vendors', label: 'Low-Cost Cooling for Vendors', description: 'Electricity-free evaporative cooling for preserving vegetables' },
+              { id: 'green-logistics', label: 'Green Logistics', description: 'Fuel-free or mechanical delivery solutions for small goods in cities' },
+            ],
+          },
+          {
+            id: 'school-senior', label: 'School Track — Grade 11 & 12', grades: ['11', '12'],
+            topics: [
+              { id: 'passive-cooling', label: 'Passive Cooling Systems', description: 'Reduce indoor temperature without AC or electricity' },
+              { id: 'waste-recycling', label: 'Industrial Waste Recycling', description: 'Affordable purification of toxic industrial wastewater' },
+              { id: 'bio-oil', label: 'Natural Oil Alternatives', description: 'Eco-friendly substitutes for machine oils and grease' },
+              { id: 'bio-enzyme', label: 'Bio-Enzyme for Agriculture', description: 'Convert crop waste into fertilizer quickly instead of burning' },
+            ],
+          },
+          {
+            id: 'college', label: 'College / Graduate Track', grades: ['Graduate'],
+            topics: [
+              { id: 'plastic-fuel', label: 'Plastic to Fuel', description: 'Convert waste plastic into usable industrial diesel' },
+              { id: 'water-purification', label: 'Low-Cost Water Purification', description: 'Affordable desalination and drinking water solutions' },
+              { id: 'smart-farming', label: 'Efficient Farming Techniques', description: 'Maximize yield with minimal water usage' },
+              { id: 'renewable-energy', label: 'Renewable Energy Solutions', description: 'Innovative and efficient power generation methods' },
+              { id: 'ai-farming', label: 'AI-Based Agriculture', description: 'Use AI to detect crop diseases and recommend organic treatments' },
+            ],
+          },
+          {
+            id: 'founders', label: 'Open / Founders Track', grades: '*',
+            topics: [
+              { id: 'open-innovation', label: 'Open Innovation', description: "Any startup or research-based innovative idea" },
+            ],
+          },
+        ],
+      },
+      ...DOCUMENT_FIELDS,
+      CONSENT_FIELD,
     ],
-    fieldOverrides: {
-      personalInfo: { require: ['aadhar'] },
-    },
-
-    topicConfig: {
-      label: 'Innovation Domain',
-      description:
-        'Select the problem domain your team will pitch on. Available tracks depend on your current grade/level.',
-      selectionMode: 'single',
-
-      groups: [
-        // ── Grade 9-10 ────────────────────────────────────────────────────
-        {
-          id: 'school-junior',
-          label: 'School Track — Grade 9 & 10',
-          grades: ['9', '10'],
-          topics: [
-            {
-              id: 'env-school',
-              label: 'Environment & Sustainability',
-              description: 'Waste management, clean energy, water conservation',
-            },
-            {
-              id: 'agri-school',
-              label: 'Agriculture & Rural Tech',
-              description: 'Smart farming, irrigation, crop monitoring',
-            },
-            {
-              id: 'health-basic',
-              label: 'Community Health',
-              description: 'Local health awareness, hygiene, sanitation',
-            },
-            {
-              id: 'edu-school',
-              label: 'Education & Literacy',
-              description: 'Learning tools, dropout prevention, digital literacy',
-            },
-          ],
-        },
-
-        // ── Grade 11-12 ───────────────────────────────────────────────────
-        {
-          id: 'school-senior',
-          label: 'School Track — Grade 11 & 12',
-          grades: ['11', '12'],
-          topics: [
-            {
-              id: 'fintech-hs',
-              label: 'Fintech & Financial Inclusion',
-              description: 'Payments, savings tools, microfinance for rural India',
-            },
-            {
-              id: 'health-hs',
-              label: 'Health & Medtech',
-              description: 'Diagnostics, telemedicine, affordable healthcare',
-            },
-            {
-              id: 'sustain-hs',
-              label: 'Sustainability & Clean Energy',
-              description: 'Solar, EV, carbon footprint reduction',
-            },
-            {
-              id: 'social-hs',
-              label: 'Social Impact',
-              description: 'Women empowerment, disability inclusion, skill development',
-            },
-            {
-              id: 'edu-hs',
-              label: 'EdTech',
-              description: 'Personalised learning, vernacular education, career guidance',
-            },
-          ],
-        },
-
-        // ── College / Graduate ────────────────────────────────────────────
-        {
-          id: 'college',
-          label: 'College / Graduate Track',
-          grades: ['Graduate'],
-          topics: [
-            {
-              id: 'ai-ml',
-              label: 'AI / ML & Data',
-              description: 'Predictive models, automation, NLP applications',
-            },
-            {
-              id: 'deeptech',
-              label: 'Deep Tech & Hardware',
-              description: 'IoT, robotics, semiconductors, embedded systems',
-            },
-            {
-              id: 'saas',
-              label: 'SaaS & Developer Tools',
-              description: 'B2B software, APIs, productivity platforms',
-            },
-            {
-              id: 'ecomm',
-              label: 'Commerce & Marketplace',
-              description: 'D2C brands, supply chain, last-mile logistics',
-            },
-            {
-              id: 'fintech-col',
-              label: 'Fintech & Blockchain',
-              description: 'DeFi, lending, insurance, payment infrastructure',
-            },
-            {
-              id: 'health-col',
-              label: 'Health & Biotech',
-              description: 'Genomics, diagnostics, mental health, wearables',
-            },
-            {
-              id: 'climate-col',
-              label: 'Climate Tech',
-              description: 'Carbon markets, electric mobility, green materials',
-            },
-          ],
-        },
-
-        // ── Open / Founders Track — always visible ────────────────────────
-        {
-          id: 'founders',
-          label: 'Open / Founders Track',
-          grades: '*',   // '*' = shown to ALL grades
-          topics: [
-            {
-              id: 'open-any',
-              label: 'Open Innovation',
-              description: "Any domain — pitch what you're building",
-            },
-            {
-              id: 'govt-civic',
-              label: 'GovTech & Civic Innovation',
-              description: 'Public services, smart cities, e-governance',
-            },
-            {
-              id: 'creative',
-              label: 'Creative & Media Tech',
-              description: 'Gaming, AR/VR, creator economy, culture tech',
-            },
-          ],
-        },
-      ],
-    },
   },
 
-  // ─── SCIENCE FAIR ──────────────────────────────────────────────────────────
+
+  // ── Science Fair ────────────────────────────────────────────────────────────
   {
     id: 'science-fair',
     title: 'State-Level Science & Innovation Fair',
-    description:
-      'A premier exhibition for students to showcase creative science models and innovative solutions.',
-    image:
-      'https://images.unsplash.com/photo-1581093577421-f561a654a353?w=600&auto=format&fit=crop&q=60',
+    description: 'A premier exhibition for students to showcase creative science models and innovative solutions.',
+    image: 'https://images.unsplash.com/photo-1581093577421-f561a654a353?w=600',
     date: 'November 2025',
     duration: '2 days',
     participants: '2,000+',
@@ -308,74 +298,64 @@ export const activities = [
     fee: 200,
     category: 'competitions',
     status: 'coming-soon',
-    features: [
-      'Hands-on project display',
-      'Panel judging by scientists and professors',
-      'Innovation awards and scholarships',
-    ],
-    eligibility: ['Students of grades 7-12', 'School nomination required'],
     pinned: false,
     link: 'sciencefairform',
+    features: ['Hands-on project display', 'Panel judging by scientists and professors'],
+    eligibility: ['Students of grades 7-12', 'School nomination required'],
 
-    sections: [
-      'personalInfo',
-      'academicInfo',
-      'topicSelection',
-      'guardianInfo',
-      'documents',
-      'additionalInfo',
+    fields: [
+      ...PERSONAL_WITH_AADHAR,
+      ...ACADEMIC_FIELDS,
+
+      {
+        id: 'topics', section: 'topics', type: 'topic-picker',
+        label: 'Science Category', required: true,
+        selectionMode: 'single',
+        gradeField: 'currentClass',
+        groups: [
+          {
+            id: 'science-junior', label: 'Junior Division — Grade 7, 8 & 9', grades: ['7', '8', '9'],
+            topics: [
+              { id: 'bio-jr', label: 'Biology & Life Sciences' },
+              { id: 'chem-jr', label: 'Chemistry' },
+              { id: 'phy-jr', label: 'Physics & Energy' },
+              { id: 'env-jr', label: 'Environmental Science' },
+              { id: 'math-jr', label: 'Maths & Computing' },
+            ],
+          },
+          {
+            id: 'science-senior', label: 'Senior Division — Grade 10, 11 & 12', grades: ['10', '11', '12'],
+            topics: [
+              { id: 'bio-sr', label: 'Biotechnology & Medicine' },
+              { id: 'chem-sr', label: 'Chemistry & Materials' },
+              { id: 'phy-sr', label: 'Physics & Engineering' },
+              { id: 'cs-sr', label: 'Computer Science & AI' },
+              { id: 'env-sr', label: 'Earth & Environmental Science' },
+            ],
+          },
+          {
+            id: 'science-open', label: 'Open Category', grades: '*',
+            topics: [
+              { id: 'inter', label: 'Interdisciplinary Project' },
+              { id: 'social-s', label: 'Social Science & Innovation' },
+            ],
+          },
+        ],
+      },
+
+      ...GUARDIAN_FIELDS,
+      ...DOCUMENT_FIELDS,
+      ...ADDITIONAL_FIELDS,
+      CONSENT_FIELD,
     ],
-    fieldOverrides: {},
-
-    topicConfig: {
-      label: 'Science Category',
-      description: 'Choose the category your project belongs to. Options update based on your grade.',
-      selectionMode: 'single',
-
-      groups: [
-        {
-          id: 'science-junior',
-          label: 'Junior Division — Grade 7, 8 & 9',
-          grades: ['7', '8', '9'],
-          topics: [
-            { id: 'bio-jr',  label: 'Biology & Life Sciences', description: 'Plants, animals, ecology, human body' },
-            { id: 'chem-jr', label: 'Chemistry',               description: 'Experiments, reactions, materials' },
-            { id: 'phy-jr',  label: 'Physics & Energy',        description: 'Motion, electricity, magnetism' },
-            { id: 'env-jr',  label: 'Environmental Science',   description: 'Pollution, conservation, climate' },
-            { id: 'math-jr', label: 'Maths & Computing',       description: 'Algorithms, geometry, puzzles' },
-          ],
-        },
-        {
-          id: 'science-senior',
-          label: 'Senior Division — Grade 10, 11 & 12',
-          grades: ['10', '11', '12'],
-          topics: [
-            { id: 'bio-sr',  label: 'Biotechnology & Medicine',  description: 'Genetics, microbiology, health innovations' },
-            { id: 'chem-sr', label: 'Chemistry & Materials',     description: 'Polymers, nanomaterials, green chemistry' },
-            { id: 'phy-sr',  label: 'Physics & Engineering',     description: 'Mechanics, optics, electronics' },
-            { id: 'cs-sr',   label: 'Computer Science & AI',     description: 'ML, robotics, software projects' },
-            { id: 'env-sr',  label: 'Earth & Environmental Sci', description: 'Climate change, renewable energy, water' },
-          ],
-        },
-        {
-          id: 'science-open',
-          label: 'Open Category',
-          grades: '*',
-          topics: [
-            { id: 'inter',    label: 'Interdisciplinary Project',  description: 'Projects spanning multiple science fields' },
-            { id: 'social-s', label: 'Social Science & Innovation', description: 'Psychology, economics, public policy' },
-          ],
-        },
-      ],
-    },
   },
 
+  // ── Quiz Championship ───────────────────────────────────────────────────────
   {
     id: 'quiz-championship',
     title: 'Inter-School Knowledge Quiz Championship',
     description: 'The ultimate quiz competition to boost knowledge, teamwork, and curiosity.',
-    image:
-      'https://images.unsplash.com/photo-1513258496099-48168024aec0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=1080',
     date: 'September 2025',
     duration: '1 day',
     participants: '1,000+',
@@ -383,25 +363,28 @@ export const activities = [
     fee: 100,
     category: 'competitions',
     status: 'coming-soon',
-    features: [
-      'Multi-round quiz (written, audio, visual)',
-      'Team-based participation',
-      'Win trophies and cash prizes!',
-    ],
-    eligibility: ['Students of grades 6-12', 'Team of 4 members'],
-    maxTeamSize: 3,
     pinned: false,
     link: 'quizform',
-    sections: ['personalInfo', 'teamInfo', 'academicInfo', 'guardianInfo', 'documents'],
-    fieldOverrides: {},
+    maxTeamSize: 3,
+    features: ['Multi-round quiz (written, audio, visual)', 'Win trophies and cash prizes!'],
+    eligibility: ['Students of grades 6-12', 'Team of 3 members'],
+
+    fields: [
+      ...PERSONAL_WITH_AADHAR,
+      ...TEAM_FIELDS(3),
+      ...ACADEMIC_FIELDS,
+      ...GUARDIAN_FIELDS,
+      ...DOCUMENT_FIELDS,
+      CONSENT_FIELD,
+    ],
   },
 
+  // ── Drawing Competition ─────────────────────────────────────────────────────
   {
     id: 'drawing-competition',
     title: 'District Art & Drawing Championship',
     description: 'A creative platform for young artists to express their imagination through art.',
-    image:
-      'https://images.unsplash.com/photo-1513364776144-60967b0f800f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
+    image: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1080',
     date: 'July 10, 2025',
     duration: '1 day',
     participants: '1,200+',
@@ -409,11 +392,19 @@ export const activities = [
     fee: 0,
     category: 'competitions',
     status: 'closed',
-    features: ['Theme-based competition', 'Expert jury evaluation', 'Trophies and certificates'],
-    eligibility: ['Students aged 10-18 years', 'School and college participants'],
     pinned: false,
     link: 'drawingform',
-    sections: ['personalInfo', 'academicInfo', 'guardianInfo', 'additionalInfo'],
-    fieldOverrides: { personalInfo: { hide: ['aadhar'] } },
+    features: ['Theme-based competition', 'Expert jury evaluation'],
+    eligibility: ['Students aged 10-18', 'School and college participants'],
+
+    fields: [
+      // No aadhar for free event
+      ...PERSONAL_FIELDS,
+      ...ACADEMIC_FIELDS,
+      ...GUARDIAN_FIELDS,
+      ...ADDITIONAL_FIELDS,
+      CONSENT_FIELD,
+    ],
   },
+
 ];
