@@ -128,7 +128,7 @@ const Home = () => {
               <button
                 size="lg"
                 className="group h-14 px-8 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center cursor-pointer"
-                onClick={() => navigate('/application/women-safety-form')}>
+                onClick={() => navigate('/application/midnightMystry')}>
                 <span className="text-lg font-medium">Apply For Midnight Mystery</span>
                 <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform duration-200" />
               </button>
